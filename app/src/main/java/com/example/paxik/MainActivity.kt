@@ -7,10 +7,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.paxik.data.Note
-import com.example.paxik.ui_config.Greet
-import com.example.paxik.ui_config.menu
-import com.example.paxik.ui_config.add
 import com.example.paxik.ui.theme.PaxikTheme
 import com.example.paxik.ui_config.notes.NotesScreen
 import com.example.paxik.ui_config.notes.NotesViewModel
@@ -23,9 +19,12 @@ class MainActivity : ComponentActivity() {
             PaxikTheme {
                 val viewModel: NotesViewModel = viewModel()
                 val notes by viewModel.notes.collectAsState()
-                NotesScreen(notes = notes, onAddNote = viewModel::addNote)
+                NotesScreen(
+                    notes = notes,
+                    onAddNote = viewModel::addNote,
+                    onDeleteNote = viewModel::deleteNote
+                )
             }
         }
     }
 }
-
