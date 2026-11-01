@@ -22,6 +22,7 @@ class MainActivity : ComponentActivity() {
                 NotesScreen(
                     notes = notes,
                     onAddNote = viewModel::addNote,
+                    onEditNote = { id, title, text -> viewModel.saveNote(id, title, text) },
                     onDeleteNote = viewModel::deleteNote
                 )
             }

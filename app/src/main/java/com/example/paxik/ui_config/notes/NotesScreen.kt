@@ -27,14 +27,16 @@ import com.example.paxik.data.Note
 fun NotesScreen(
     notes: List<Note>,
     onAddNote: (String, String) -> Unit,
+    onEditNote: (Long, String, String) -> Unit,
     onDeleteNote: (Long) -> Unit
 ) {
-    var showDialog by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var noteToEdit by remember { mutableStateOf<Note?>(null) }
     var noteToDelete by remember { mutableStateOf<Note?>(null) }
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { showDialog = true }) {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Добавить заметку")
             }
         }
@@ -47,19 +49,35 @@ fun NotesScreen(
             items(notes, key = { it.id }) { note ->
                 NoteCard(
                     note = note,
-                    onClick = { },
+                    onClick = { noteToEdit = note },
                     onLongClick = { noteToDelete = note }
                 )
             }
         }
     }
 
-    if (showDialog) {
-        AddNoteDialog(
-            onDismiss = { showDialog = false },
+    if (showAddDialog) {
+        NoteDialog(
+            dialogTitle = "Новая заметка",
+            confirmText = "Добавить",
+            onDismiss = { showAddDialog = false },
             onConfirm = { title, text ->
                 onAddNote(title, text)
-                showDialog = false
+                showAddDialog = false
+            }
+        )
+    }
+
+    noteToEdit?.let { note ->
+        NoteDialog(
+            dialogTitle = "Редактирование",
+            confirmText = "Сохранить",
+            initialTitle = note.title,
+            initialText = note.text,
+            onDismiss = { noteToEdit = null },
+            onConfirm = { title, text ->
+                onEditNote(note.id, title, text)
+                noteToEdit = null
             }
         )
     }

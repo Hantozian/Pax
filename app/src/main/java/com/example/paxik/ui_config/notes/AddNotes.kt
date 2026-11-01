@@ -14,16 +14,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun AddNoteDialog(
+fun NoteDialog(
+    dialogTitle: String,
+    confirmText: String,
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onConfirm: (String, String) -> Unit,
+    initialTitle: String = "",
+    initialText: String = ""
 ) {
-    var title by remember { mutableStateOf("") }
-    var text by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf(initialTitle) }
+    var text by remember { mutableStateOf(initialText) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Новая заметка") },
+        title = { Text(dialogTitle) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextField(
@@ -34,12 +38,14 @@ fun AddNoteDialog(
                 TextField(
                     value = text,
                     onValueChange = { text = it },
-                    label = { Text("Текст") }
+                    label = { Text("Текст") },
+                    minLines = 3,
+                    maxLines = 8
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(title, text) }) { Text("Добавить") }
+            TextButton(onClick = { onConfirm(title, text) }) { Text(confirmText) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Отмена") }
