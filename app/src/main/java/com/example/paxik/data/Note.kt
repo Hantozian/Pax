@@ -1,5 +1,6 @@
 package com.example.paxik.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -7,5 +8,7 @@ import androidx.room.PrimaryKey
 data class Note(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
-    val text: String          // здесь будет лежать markdown
+    val text: String, // здесь будет лежать markdown
+    val folderId: Long? = null,
+    @ColumnInfo(defaultValue = "1") val spaceId: Long
 )

@@ -23,8 +23,10 @@ fun NoteCard(note: Note, onClick: () -> Unit, onLongClick: () -> Unit) {
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = note.title, fontSize = 20.sp)
-            Text(text = note.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(text = note.title.ifBlank { "Без названия" }, fontSize = 20.sp)
+            if (note.text.isNotBlank()) {
+                Text(text = note.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }
