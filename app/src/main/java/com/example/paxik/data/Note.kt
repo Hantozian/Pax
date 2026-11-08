@@ -10,5 +10,6 @@ data class Note(
     val title: String,
     val text: String, // здесь будет лежать markdown
     val folderId: Long? = null,
-    @ColumnInfo(defaultValue = "1") val spaceId: Long
+    @ColumnInfo(defaultValue = "1") val spaceId: Long,
+    @ColumnInfo(defaultValue = "''") val spans: String = ""
 )

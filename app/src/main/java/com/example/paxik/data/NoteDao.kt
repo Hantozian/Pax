@@ -20,8 +20,8 @@ interface NoteDao {
     @Upsert
     suspend fun save(note: Note)
 
-    @Query("UPDATE notes SET title = :title, text = :text WHERE id = :id")
-    suspend fun updateContent(id: Long, title: String, text: String)
+    @Query("UPDATE notes SET title = :title, text = :text, spans = :spans WHERE id = :id")
+    suspend fun updateContent(id: Long, title: String, text: String, spans: String)
 
     @Query("UPDATE notes SET folderId = :folderId WHERE id = :id")
     suspend fun moveToFolder(id: Long, folderId: Long?)

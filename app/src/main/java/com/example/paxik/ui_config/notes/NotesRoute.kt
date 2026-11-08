@@ -16,7 +16,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun NotesRoute(
     viewModel: NotesViewModel,
-    onOpenNote: (Long) -> Unit
+    onOpenNote: (Long) -> Unit,
+    onOpenGraph: () -> Unit
 ) {
     val notes by viewModel.notes.collectAsState()
     val folders by viewModel.folders.collectAsState()
@@ -58,6 +59,7 @@ fun NotesRoute(
             folderOptions = folderOptions,
             currentFolderId = currentFolderId,
             onOpenMenu = { scope.launch { drawerState.open() } },
+            onOpenGraph = onOpenGraph,
             onOpenFolder = viewModel::openFolder,
             onCreateNote = { viewModel.createNote(onOpenNote) },
             onOpenNote = onOpenNote,

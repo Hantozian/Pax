@@ -43,6 +43,7 @@ fun NotesScreen(
     folderOptions: List<FolderOption>,
     currentFolderId: Long?,
     onOpenMenu: () -> Unit,
+    onOpenGraph: () -> Unit,
     onOpenFolder: (Long?) -> Unit,
     onCreateNote: () -> Unit,
     onOpenNote: (Long) -> Unit,
@@ -69,6 +70,9 @@ fun NotesScreen(
                     IconButton(onClick = onOpenMenu) {
                         Icon(Icons.Default.Menu, contentDescription = "Пространства")
                     }
+                },
+                actions = {
+                    TextButton(onClick = onOpenGraph) { Text("Граф") }
                 }
             )
         },
