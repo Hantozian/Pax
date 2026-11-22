@@ -45,7 +45,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.paxik.data.Note
 import com.example.paxik.data.Space
 import kotlinx.coroutines.launch
 
@@ -99,24 +98,6 @@ private fun SheetAction(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier.clickable(onClick = onClick)
     )
-}
-
-@Composable
-fun NoteActionsSheet(
-    note: Note,
-    onMove: () -> Unit,
-    onDelete: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AppBottomSheet(onDismiss) { close ->
-        SheetTitle(note.title.ifBlank { note.text.ifBlank { "Без названия" } })
-        SheetAction(text = "Переместить в папку", onClick = { close { onMove() } })
-        SheetAction(
-            text = "Удалить",
-            color = MaterialTheme.colorScheme.error,
-            onClick = { close { onDelete() } }
-        )
-    }
 }
 
 @Composable

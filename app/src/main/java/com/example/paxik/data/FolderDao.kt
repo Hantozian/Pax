@@ -14,6 +14,9 @@ interface FolderDao {
     @Upsert
     suspend fun save(folder: Folder)
 
+    @Query("UPDATE folders SET parentId = :parentId WHERE id = :id")
+    suspend fun moveToParent(id: Long, parentId: Long?)
+
     @Query("DELETE FROM notes WHERE folderId IN (:ids)")
     suspend fun deleteNotesInFolders(ids: List<Long>)
 

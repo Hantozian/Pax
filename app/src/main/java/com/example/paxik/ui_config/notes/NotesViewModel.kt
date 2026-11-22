@@ -31,6 +31,12 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
     private val _currentFolderId = MutableStateFlow<Long?>(null)
     val currentFolderId: StateFlow<Long?> = _currentFolderId
 
+    private val _selectedNotes = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedNotes: StateFlow<Set<Long>> = _selectedNotes
+
+    private val _selectedFolders = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedFolders: StateFlow<Set<Long>> = _selectedFolders
+
     val spaces: StateFlow<List<Space>> =
         spaceDao.getAll().stateIn(viewModelScope, started, emptyList())
 
@@ -91,15 +97,69 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
             listOf(FolderOption(null, spaceName, "")) + options
         }.stateIn(viewModelScope, started, listOf(FolderOption(null, "Главная", "")))
 
+    val moveOptions: StateFlow<List<FolderOption>> =
+        combine(folderOptions, allFolders, _selectedFolders) { options, all, selected ->
+            if (selected.isEmpty()) {
+                options
+            } else {
+                val blocked = collectTree(selected.toList(), all).toSet()
+                options.filter { it.id == null || it.id !in blocked }
+            }
+        }.stateIn(viewModelScope, started, listOf(FolderOption(null, "Главная", "")))
+
     init {
         viewModelScope.launch { linkDao.deleteOrphans() }
     }
 
     fun openFolder(id: Long?) {
+        clearSelection()
         _currentFolderId.value = id
     }
 
+    fun toggleNote(id: Long) {
+        _selectedNotes.value = _selectedNotes.value.toggled(id)
+    }
+
+    fun toggleFolder(id: Long) {
+        _selectedFolders.value = _selectedFolders.value.toggled(id)
+    }
+
+    fun selectAll() {
+        _selectedNotes.value = notes.value.map { it.id }.toSet()
+        _selectedFolders.value = folders.value.map { it.id }.toSet()
+    }
+
+    fun clearSelection() {
+        _selectedNotes.value = emptySet()
+        _selectedFolders.value = emptySet()
+    }
+
+    fun deleteSelected() {
+        val noteIds = _selectedNotes.value.toList()
+        val folderIds = _selectedFolders.value.toList()
+        clearSelection()
+        viewModelScope.launch {
+            if (noteIds.isNotEmpty()) noteDao.deleteByIds(noteIds)
+            if (folderIds.isNotEmpty()) {
+                folderDao.deleteTree(collectTree(folderIds, allFolders.value))
+            }
+        }
+    }
+
+    fun moveSelected(target: Long?) {
+        val noteIds = _selectedNotes.value.toList()
+        val folderIds = _selectedFolders.value.toList()
+        val blocked = collectTree(folderIds, allFolders.value).toSet()
+        if (target != null && target in blocked) return
+        clearSelection()
+        viewModelScope.launch {
+            if (noteIds.isNotEmpty()) noteDao.moveNotes(noteIds, target)
+            folderIds.forEach { folderDao.moveToParent(it, target) }
+        }
+    }
+
     fun selectSpace(id: Long) {
+        clearSelection()
         savedSpaceId.value = id
         _currentFolderId.value = null
         prefs.edit().putLong("space_id", id).apply()
@@ -141,14 +201,6 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun moveNote(id: Long, folderId: Long?) {
-        viewModelScope.launch { noteDao.moveToFolder(id, folderId) }
-    }
-
-    fun deleteNote(id: Long) {
-        viewModelScope.launch { noteDao.deleteById(id) }
-    }
-
     fun addFolder(name: String) {
         if (name.isBlank()) return
         viewModelScope.launch {
@@ -162,15 +214,14 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun deleteFolder(id: Long) {
-        val all = allFolders.value
-        val ids = mutableListOf(id)
+    private fun collectTree(roots: List<Long>, all: List<Folder>): List<Long> {
+        val ids = ArrayList<Long>(roots)
         var index = 0
         while (index < ids.size) {
             val parent = ids[index++]
             all.filter { it.parentId == parent }.forEach { ids.add(it.id) }
         }
-        viewModelScope.launch { folderDao.deleteTree(ids) }
+        return ids
     }
 
     private fun pathTo(id: Long?, byId: Map<Long, Folder>): List<Folder> {
@@ -184,3 +235,5 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
         return result
     }
 }
+
+private fun Set<Long>.toggled(id: Long): Set<Long> = if (id in this) this - id else this + id

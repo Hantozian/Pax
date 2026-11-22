@@ -22,7 +22,9 @@ fun NotesRoute(
     val notes by viewModel.notes.collectAsState()
     val folders by viewModel.folders.collectAsState()
     val path by viewModel.path.collectAsState()
-    val folderOptions by viewModel.folderOptions.collectAsState()
+    val moveOptions by viewModel.moveOptions.collectAsState()
+    val selectedNotes by viewModel.selectedNotes.collectAsState()
+    val selectedFolders by viewModel.selectedFolders.collectAsState()
     val currentFolderId by viewModel.currentFolderId.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
     val activeSpaceId by viewModel.activeSpaceId.collectAsState()
@@ -56,17 +58,22 @@ fun NotesRoute(
             notes = notes,
             folders = folders,
             path = path,
-            folderOptions = folderOptions,
+            moveOptions = moveOptions,
             currentFolderId = currentFolderId,
+            selectedNoteIds = selectedNotes,
+            selectedFolderIds = selectedFolders,
             onOpenMenu = { scope.launch { drawerState.open() } },
             onOpenGraph = onOpenGraph,
             onOpenFolder = viewModel::openFolder,
             onCreateNote = { viewModel.createNote(onOpenNote) },
             onOpenNote = onOpenNote,
-            onDeleteNote = viewModel::deleteNote,
-            onMoveNote = viewModel::moveNote,
-            onAddFolder = viewModel::addFolder,
-            onDeleteFolder = viewModel::deleteFolder
+            onToggleNote = viewModel::toggleNote,
+            onToggleFolder = viewModel::toggleFolder,
+            onSelectAll = viewModel::selectAll,
+            onClearSelection = viewModel::clearSelection,
+            onDeleteSelected = viewModel::deleteSelected,
+            onMoveSelected = viewModel::moveSelected,
+            onAddFolder = viewModel::addFolder
         )
     }
 

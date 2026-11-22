@@ -12,11 +12,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
@@ -40,52 +44,89 @@ fun NotesScreen(
     notes: List<Note>,
     folders: List<Folder>,
     path: List<Folder>,
-    folderOptions: List<FolderOption>,
+    moveOptions: List<FolderOption>,
     currentFolderId: Long?,
+    selectedNoteIds: Set<Long>,
+    selectedFolderIds: Set<Long>,
     onOpenMenu: () -> Unit,
     onOpenGraph: () -> Unit,
     onOpenFolder: (Long?) -> Unit,
     onCreateNote: () -> Unit,
     onOpenNote: (Long) -> Unit,
-    onDeleteNote: (Long) -> Unit,
-    onMoveNote: (Long, Long?) -> Unit,
-    onAddFolder: (String) -> Unit,
-    onDeleteFolder: (Long) -> Unit
+    onToggleNote: (Long) -> Unit,
+    onToggleFolder: (Long) -> Unit,
+    onSelectAll: () -> Unit,
+    onClearSelection: () -> Unit,
+    onDeleteSelected: () -> Unit,
+    onMoveSelected: (Long?) -> Unit,
+    onAddFolder: (String) -> Unit
 ) {
     var showFolderSheet by remember { mutableStateOf(false) }
-    var noteForActions by remember { mutableStateOf<Note?>(null) }
-    var noteToMove by remember { mutableStateOf<Note?>(null) }
-    var noteToDelete by remember { mutableStateOf<Note?>(null) }
-    var folderToDelete by remember { mutableStateOf<Folder?>(null) }
+    var showMoveSheet by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val selectedCount = selectedNoteIds.size + selectedFolderIds.size
+    val selecting = selectedCount > 0
 
     BackHandler(enabled = currentFolderId != null) {
         onOpenFolder(path.dropLast(1).lastOrNull()?.id)
     }
+    BackHandler(enabled = selecting) { onClearSelection() }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(spaceName) },
-                navigationIcon = {
-                    IconButton(onClick = onOpenMenu) {
-                        Icon(Icons.Default.Menu, contentDescription = "Пространства")
+            if (selecting) {
+                TopAppBar(
+                    title = { Text("Выбрано: $selectedCount") },
+                    navigationIcon = {
+                        IconButton(onClick = onClearSelection) {
+                            Icon(Icons.Default.Close, contentDescription = "Отменить выделение")
+                        }
                     }
-                },
-                actions = {
-                    TextButton(onClick = onOpenGraph) { Text("Граф") }
-                }
-            )
+                )
+            } else {
+                TopAppBar(
+                    title = { Text(spaceName) },
+                    navigationIcon = {
+                        IconButton(onClick = onOpenMenu) {
+                            Icon(Icons.Default.Menu, contentDescription = "Пространства")
+                        }
+                    },
+                    actions = {
+                        TextButton(onClick = onOpenGraph) { Text("Граф") }
+                    }
+                )
+            }
+        },
+        bottomBar = {
+            if (selecting) {
+                BottomAppBar(
+                    actions = {
+                        TextButton(onClick = onSelectAll) { Text("Выбрать все") }
+                        TextButton(onClick = { showMoveSheet = true }) { Text("Переместить") }
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Удалить",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                )
+            }
         },
         floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                SmallFloatingActionButton(onClick = { showFolderSheet = true }) {
-                    Text("📁")
-                }
-                FloatingActionButton(onClick = onCreateNote) {
-                    Icon(Icons.Default.Add, contentDescription = "Добавить заметку")
+            if (!selecting) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    SmallFloatingActionButton(onClick = { showFolderSheet = true }) {
+                        Text("📁")
+                    }
+                    FloatingActionButton(onClick = onCreateNote) {
+                        Icon(Icons.Default.Add, contentDescription = "Добавить заметку")
+                    }
                 }
             }
         }
@@ -107,15 +148,21 @@ fun NotesScreen(
                 items(folders, key = { "folder-${it.id}" }) { folder ->
                     FolderCard(
                         folder = folder,
-                        onClick = { onOpenFolder(folder.id) },
-                        onLongClick = { folderToDelete = folder }
+                        selected = folder.id in selectedFolderIds,
+                        onClick = {
+                            if (selecting) onToggleFolder(folder.id) else onOpenFolder(folder.id)
+                        },
+                        onLongClick = { onToggleFolder(folder.id) }
                     )
                 }
                 items(notes, key = { "note-${it.id}" }) { note ->
                     NoteCard(
                         note = note,
-                        onClick = { onOpenNote(note.id) },
-                        onLongClick = { noteForActions = note }
+                        selected = note.id in selectedNoteIds,
+                        onClick = {
+                            if (selecting) onToggleNote(note.id) else onOpenNote(note.id)
+                        },
+                        onLongClick = { onToggleNote(note.id) }
                     )
                 }
             }
@@ -131,45 +178,29 @@ fun NotesScreen(
         )
     }
 
-    noteForActions?.let { note ->
-        NoteActionsSheet(
-            note = note,
-            onMove = { noteToMove = note },
-            onDelete = { noteToDelete = note },
-            onDismiss = { noteForActions = null }
-        )
-    }
-
-    noteToMove?.let { note ->
+    if (showMoveSheet) {
         MoveNoteSheet(
-            options = folderOptions,
-            currentFolderId = note.folderId,
-            onSelect = { target -> onMoveNote(note.id, target) },
-            onDismiss = { noteToMove = null }
+            options = moveOptions,
+            currentFolderId = currentFolderId,
+            onSelect = onMoveSelected,
+            onDismiss = { showMoveSheet = false }
         )
     }
 
-    noteToDelete?.let { note ->
+    if (showDeleteDialog) {
         ConfirmDeleteDialog(
-            title = "Удалить заметку?",
-            message = "«${note.title.ifBlank { note.text.ifBlank { "Без названия" } }}» будет удалена без возможности восстановления.",
-            onConfirm = {
-                onDeleteNote(note.id)
-                noteToDelete = null
+            title = "Удалить выбранное?",
+            message = buildString {
+                append("Выбрано элементов: $selectedCount. Они будут удалены без возможности восстановления.")
+                if (selectedFolderIds.isNotEmpty()) {
+                    append(" Папки удаляются вместе со всеми вложенными папками и заметками.")
+                }
             },
-            onDismiss = { noteToDelete = null }
-        )
-    }
-
-    folderToDelete?.let { folder ->
-        ConfirmDeleteDialog(
-            title = "Удалить папку?",
-            message = "Папка «${folder.name}» будет удалена вместе со всеми вложенными папками и заметками.",
             onConfirm = {
-                onDeleteFolder(folder.id)
-                folderToDelete = null
+                showDeleteDialog = false
+                onDeleteSelected()
             },
-            onDismiss = { folderToDelete = null }
+            onDismiss = { showDeleteDialog = false }
         )
     }
 }
