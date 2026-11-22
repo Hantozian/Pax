@@ -39,7 +39,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,7 +64,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.paxik.data.NodeType
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +77,6 @@ fun NoteEditorScreen(
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
     val focusManager = LocalFocusManager.current
     val titleFocus = remember { FocusRequester() }
-    val scope = rememberCoroutineScope()
 
     val bodyStyle = MaterialTheme.typography.bodyLarge.copy(
         color = MaterialTheme.colorScheme.onSurface
@@ -185,7 +182,7 @@ fun NoteEditorScreen(
                                         val result = layout
                                         if (result != null) {
                                             val offset = result.getOffsetForPosition(up.position)
-                                            scope.launch { viewModel.onBodyTap(offset) }
+                                            viewModel.onBodyTap(offset)
                                         }
                                     }
                                 }

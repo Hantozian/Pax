@@ -8,6 +8,7 @@ import com.example.paxik.data.AppDatabase
 import com.example.paxik.data.Folder
 import com.example.paxik.data.NodeType
 import com.example.paxik.data.Note
+import com.example.paxik.data.NoteBrief
 import com.example.paxik.data.Space
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -45,10 +46,10 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
             if (list.isEmpty() || list.any { it.id == saved }) saved else list.first().id
         }.stateIn(viewModelScope, started, savedSpaceId.value)
 
-    private val allNotes = noteDao.getAll().stateIn(viewModelScope, started, emptyList())
+    private val allNotes = noteDao.getBriefs().stateIn(viewModelScope, started, emptyList())
     private val allFolders = folderDao.getAll().stateIn(viewModelScope, started, emptyList())
 
-    val notes: StateFlow<List<Note>> =
+    val notes: StateFlow<List<NoteBrief>> =
         combine(allNotes, activeSpaceId, _currentFolderId) { list, spaceId, folderId ->
             list.filter { it.spaceId == spaceId && it.folderId == folderId }
         }.stateIn(viewModelScope, started, emptyList())
@@ -62,7 +63,7 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
         combine(allFolders, _currentFolderId) { list, id -> pathTo(id, list.associateBy { it.id }) }
             .stateIn(viewModelScope, started, emptyList())
 
-    val folderOptions: StateFlow<List<FolderOption>> =
+    private val folderOptions: StateFlow<List<FolderOption>> =
         combine(allFolders, activeSpaceId, spaces) { list, spaceId, spaceList ->
             val spaceName = spaceList.firstOrNull { it.id == spaceId }?.name ?: "Главная"
             val byId = list.associateBy { it.id }

@@ -36,13 +36,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.paxik.data.Folder
 import com.example.paxik.data.NodeType
-import com.example.paxik.data.Note
+import com.example.paxik.data.NoteBrief
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(
     spaceName: String,
-    notes: List<Note>,
+    notes: List<NoteBrief>,
     folders: List<Folder>,
     path: List<Folder>,
     moveOptions: List<FolderOption>,

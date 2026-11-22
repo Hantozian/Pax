@@ -76,6 +76,14 @@ fun AppBottomSheet(
 }
 
 @Composable
+internal fun transparentFieldColors() = TextFieldDefaults.colors(
+    focusedContainerColor = Color.Transparent,
+    unfocusedContainerColor = Color.Transparent,
+    focusedIndicatorColor = Color.Transparent,
+    unfocusedIndicatorColor = Color.Transparent
+)
+
+@Composable
 internal fun SheetTitle(text: String) {
     Text(
         text = text,
@@ -201,12 +209,7 @@ fun NameSheet(
             keyboardActions = KeyboardActions(
                 onDone = { if (value.text.isNotBlank()) close { onConfirm(value.text) } }
             ),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            ),
+            colors = transparentFieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp)

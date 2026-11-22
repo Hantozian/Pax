@@ -15,11 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.paxik.data.Note
+import com.example.paxik.data.NoteBrief
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun NoteCard(note: Note, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+fun NoteCard(note: NoteBrief, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     Card(
         colors = if (selected) {
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
@@ -40,8 +40,8 @@ fun NoteCard(note: Note, selected: Boolean, onClick: () -> Unit, onLongClick: ()
                 text = (if (selected) "✓ " else "") + note.title.ifBlank { "Без названия" },
                 fontSize = 20.sp
             )
-            if (note.text.isNotBlank()) {
-                Text(text = note.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (note.preview.isNotBlank()) {
+                Text(text = note.preview, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }

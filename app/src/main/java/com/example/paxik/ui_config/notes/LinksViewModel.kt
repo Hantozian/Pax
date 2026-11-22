@@ -19,7 +19,7 @@ class LinksViewModel(app: Application) : AndroidViewModel(app) {
         combine(
             db.spaceDao().getAll(),
             db.folderDao().getAll(),
-            db.noteDao().getAll(),
+            db.noteDao().getBriefs(),
             linkDao.getAll()
         ) { spaces, folders, notes, links ->
             GraphData.build(spaces, folders, notes, links)

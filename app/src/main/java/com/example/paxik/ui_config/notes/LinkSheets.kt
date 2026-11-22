@@ -15,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -27,11 +26,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.paxik.data.Note
+import com.example.paxik.data.NoteBrief
 
-fun noteLabel(note: Note): String =
+fun noteLabel(note: NoteBrief): String =
     note.title.ifBlank {
-        note.text.trim().lineSequence().firstOrNull().orEmpty().ifBlank { "Без названия" }
+        note.preview.trim().lineSequence().firstOrNull().orEmpty().ifBlank { "Без названия" }
     }
 
 private enum class LinksStage { LIST, PICK }
@@ -101,7 +100,7 @@ private fun NodeLinksSheet(
     onDismiss: () -> Unit
 ) {
     AppBottomSheet(onDismiss) { close ->
-        SheetHeader(if (title.isBlank()) "Связи" else "Связи · $title")
+        SheetTitle(if (title.isBlank()) "Связи" else "Связи · $title")
         LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
             if (relations.outgoing.isEmpty() && relations.incoming.isEmpty()) {
                 item {
@@ -153,18 +152,13 @@ private fun PickNodeSheet(
         var query by remember { mutableStateOf("") }
         val filtered = candidates.filter { it.title.contains(query.trim(), ignoreCase = true) }
 
-        SheetHeader("Связать с…")
+        SheetTitle("Связать с…")
         TextField(
             value = query,
             onValueChange = { query = it },
             singleLine = true,
             placeholder = { Text("Поиск") },
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            ),
+            colors = transparentFieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp)
@@ -209,18 +203,6 @@ private fun LinkRow(node: GraphNode, onClick: () -> Unit, onRemove: () -> Unit) 
         },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier.clickable(onClick = onClick)
-    )
-}
-
-@Composable
-private fun SheetHeader(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
     )
 }
 

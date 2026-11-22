@@ -2,7 +2,7 @@ package com.example.paxik.ui_config.notes
 
 import com.example.paxik.data.Folder
 import com.example.paxik.data.Link
-import com.example.paxik.data.Note
+import com.example.paxik.data.NoteBrief
 import com.example.paxik.data.NodeType
 import com.example.paxik.data.Space
 
@@ -81,7 +81,7 @@ data class GraphData(
         fun build(
             spaces: List<Space>,
             folders: List<Folder>,
-            notes: List<Note>,
+            notes: List<NoteBrief>,
             links: List<Link>
         ): GraphData {
             val spaceNames = spaces.associate { it.id to it.name }

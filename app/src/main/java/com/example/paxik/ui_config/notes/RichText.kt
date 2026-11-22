@@ -34,7 +34,7 @@ object RichText {
         for (part in raw.split(";")) {
             val items = part.split(":")
             if (items.size != 3) continue
-            val fmt = Fmt.values().firstOrNull { it.code == items[0] } ?: continue
+            val fmt = Fmt.entries.firstOrNull { it.code == items[0] } ?: continue
             val start = items[1].toIntOrNull() ?: continue
             val end = items[2].toIntOrNull() ?: continue
             result.add(Span(fmt, start, end))
@@ -44,7 +44,7 @@ object RichText {
 
     fun normalize(spans: List<Span>, text: String): List<Span> {
         val result = ArrayList<Span>()
-        for (fmt in Fmt.values()) {
+        for (fmt in Fmt.entries) {
             val ranges = spans
                 .filter { it.fmt == fmt }
                 .map { it.start.coerceIn(0, text.length) to it.end.coerceIn(0, text.length) }

@@ -195,7 +195,7 @@ class NoteEditorViewModel(
         val newText = oldText.substring(0, p) + insert + oldText.substring(p + removed)
         var updated = RichText.shift(spans, p, removed, insert.length)
         if (insert.isNotEmpty()) {
-            for (fmt in Fmt.values()) {
+            for (fmt in Fmt.entries) {
                 val lineLevel = fmt == Fmt.H1 || fmt == Fmt.H2
                 val inherited = p > 0 && RichText.covers(spans, fmt, p - 1, p)
                 val desired = when {
