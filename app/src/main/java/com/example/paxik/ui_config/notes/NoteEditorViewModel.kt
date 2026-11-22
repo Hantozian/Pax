@@ -22,7 +22,7 @@ class NoteEditorViewModel(
     savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(app) {
     private val dao = AppDatabase.get(app).noteDao()
-    private val noteId: Long = checkNotNull(savedStateHandle["noteId"])
+    val noteId: Long = checkNotNull(savedStateHandle["noteId"])
     private var closing = false
 
     var title by mutableStateOf("")

@@ -10,12 +10,12 @@ import kotlin.math.sqrt
 object GraphLayout {
     const val SIZE = 1000f
 
-    fun compute(ids: List<Long>, edges: List<Pair<Long, Long>>): Map<Long, Offset> {
+    fun <K> compute(ids: List<K>, edges: List<Pair<K, K>>): Map<K, Offset> {
         val n = ids.size
         if (n == 0) return emptyMap()
         if (n == 1) return mapOf(ids[0] to Offset(SIZE / 2, SIZE / 2))
 
-        val index = HashMap<Long, Int>()
+        val index = HashMap<K, Int>()
         ids.forEachIndexed { i, id -> index[id] = i }
         val pairs = ArrayList<Pair<Int, Int>>()
         for ((a, b) in edges) {
@@ -89,7 +89,7 @@ object GraphLayout {
             temperature *= 0.96f
         }
 
-        val result = HashMap<Long, Offset>()
+        val result = HashMap<K, Offset>()
         ids.forEachIndexed { i, id -> result[id] = Offset(px[i], py[i]) }
         return result
     }

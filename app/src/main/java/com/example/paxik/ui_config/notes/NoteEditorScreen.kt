@@ -64,13 +64,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.paxik.data.NodeType
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteEditorScreen(
     onClose: () -> Unit,
-    onOpenNote: (Long) -> Unit,
+    onOpenNode: (NodeRef) -> Unit,
     viewModel: NoteEditorViewModel = viewModel()
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -115,7 +116,10 @@ fun NoteEditorScreen(
                     }
                 },
                 actions = {
-                    NoteLinksButton(onOpenNote = onOpenNote)
+                    NodeLinksButton(
+                        node = NodeRef(NodeType.NOTE, viewModel.noteId),
+                        onOpenNode = onOpenNode
+                    )
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(Icons.Default.Delete, contentDescription = "Удалить")
                     }

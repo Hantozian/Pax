@@ -12,10 +12,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.paxik.data.NodeType
 import com.example.paxik.ui.theme.PaxikTheme
 import com.example.paxik.ui_config.notes.GraphScreen
 import com.example.paxik.ui_config.notes.NoteEditorScreen
 import com.example.paxik.ui_config.notes.NotesRoute
+import com.example.paxik.ui_config.notes.NodeRef
 import com.example.paxik.ui_config.notes.NotesViewModel
 
 class MainActivity : ComponentActivity() {
@@ -27,23 +29,30 @@ class MainActivity : ComponentActivity() {
                 val viewModel: NotesViewModel = viewModel()
                 val navController = rememberNavController()
 
+                val openNode: (NodeRef) -> Unit = { ref ->
+                    when (ref.type) {
+                        NodeType.NOTE -> navController.navigate("note/${ref.id}")
+                        else -> {
+                            viewModel.reveal(ref)
+                            navController.popBackStack("notes", false)
+                        }
+                    }
+                }
+
                 NavHost(navController = navController, startDestination = "notes") {
                     composable("notes") {
                         NotesRoute(
                             viewModel = viewModel,
                             onOpenNote = { id -> navController.navigate("note/$id") },
+                            onOpenNode = openNode,
                             onOpenGraph = { navController.navigate("graph") }
                         )
                     }
                     composable("graph") {
-                        val spaceNotes by viewModel.spaceNotes.collectAsState()
-                        val spaceLinks by viewModel.spaceLinks.collectAsState()
-                        val spaceName by viewModel.activeSpaceName.collectAsState()
+                        val activeSpaceId by viewModel.activeSpaceId.collectAsState()
                         GraphScreen(
-                            spaceName = spaceName,
-                            notes = spaceNotes,
-                            links = spaceLinks,
-                            onOpenNote = { id -> navController.navigate("note/$id") },
+                            activeSpaceId = activeSpaceId,
+                            onOpenNode = openNode,
                             onBack = { navController.popBackStack() }
                         )
                     }
@@ -53,7 +62,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         NoteEditorScreen(
                             onClose = { navController.popBackStack() },
-                            onOpenNote = { id -> navController.navigate("note/$id") }
+                            onOpenNode = openNode
                         )
                     }
                 }

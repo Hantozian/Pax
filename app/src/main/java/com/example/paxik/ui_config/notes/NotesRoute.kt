@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.example.paxik.data.NodeType
 import com.example.paxik.data.Space
 import kotlinx.coroutines.launch
 
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 fun NotesRoute(
     viewModel: NotesViewModel,
     onOpenNote: (Long) -> Unit,
+    onOpenNode: (NodeRef) -> Unit,
     onOpenGraph: () -> Unit
 ) {
     val notes by viewModel.notes.collectAsState()
@@ -35,6 +37,7 @@ fun NotesRoute(
 
     var showNewSpace by remember { mutableStateOf(false) }
     var spaceForActions by remember { mutableStateOf<Space?>(null) }
+    var spaceForLinks by remember { mutableStateOf<Space?>(null) }
     var spaceToRename by remember { mutableStateOf<Space?>(null) }
     var spaceToDelete by remember { mutableStateOf<Space?>(null) }
 
@@ -67,6 +70,7 @@ fun NotesRoute(
             onOpenFolder = viewModel::openFolder,
             onCreateNote = { viewModel.createNote(onOpenNote) },
             onOpenNote = onOpenNote,
+            onOpenNode = onOpenNode,
             onToggleNote = viewModel::toggleNote,
             onToggleFolder = viewModel::toggleFolder,
             onSelectAll = viewModel::selectAll,
@@ -93,9 +97,21 @@ fun NotesRoute(
         SpaceActionsSheet(
             space = space,
             canDelete = spaces.size > 1,
+            onLinks = { spaceForLinks = space },
             onRename = { spaceToRename = space },
             onDelete = { spaceToDelete = space },
             onDismiss = { spaceForActions = null }
+        )
+    }
+
+    spaceForLinks?.let { space ->
+        NodeLinksSheets(
+            node = NodeRef(NodeType.SPACE, space.id),
+            onOpenNode = { ref ->
+                scope.launch { drawerState.close() }
+                onOpenNode(ref)
+            },
+            onDismiss = { spaceForLinks = null }
         )
     }
 

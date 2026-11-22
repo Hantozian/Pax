@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.paxik.data.Folder
+import com.example.paxik.data.NodeType
 import com.example.paxik.data.Note
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,6 +54,7 @@ fun NotesScreen(
     onOpenFolder: (Long?) -> Unit,
     onCreateNote: () -> Unit,
     onOpenNote: (Long) -> Unit,
+    onOpenNode: (NodeRef) -> Unit,
     onToggleNote: (Long) -> Unit,
     onToggleFolder: (Long) -> Unit,
     onSelectAll: () -> Unit,
@@ -64,9 +66,17 @@ fun NotesScreen(
     var showFolderSheet by remember { mutableStateOf(false) }
     var showMoveSheet by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showLinks by remember { mutableStateOf(false) }
 
     val selectedCount = selectedNoteIds.size + selectedFolderIds.size
     val selecting = selectedCount > 0
+    val singleRef = when {
+        selectedNoteIds.size == 1 && selectedFolderIds.isEmpty() ->
+            NodeRef(NodeType.NOTE, selectedNoteIds.first())
+        selectedFolderIds.size == 1 && selectedNoteIds.isEmpty() ->
+            NodeRef(NodeType.FOLDER, selectedFolderIds.first())
+        else -> null
+    }
 
     BackHandler(enabled = currentFolderId != null) {
         onOpenFolder(path.dropLast(1).lastOrNull()?.id)
@@ -81,6 +91,11 @@ fun NotesScreen(
                     navigationIcon = {
                         IconButton(onClick = onClearSelection) {
                             Icon(Icons.Default.Close, contentDescription = "Отменить выделение")
+                        }
+                    },
+                    actions = {
+                        if (singleRef != null) {
+                            TextButton(onClick = { showLinks = true }) { Text("Связи") }
                         }
                     }
                 )
@@ -175,6 +190,17 @@ fun NotesScreen(
             confirmText = "Создать",
             onConfirm = onAddFolder,
             onDismiss = { showFolderSheet = false }
+        )
+    }
+
+    if (showLinks && singleRef != null) {
+        NodeLinksSheets(
+            node = singleRef,
+            onOpenNode = { ref ->
+                onClearSelection()
+                onOpenNode(ref)
+            },
+            onDismiss = { showLinks = false }
         )
     }
 

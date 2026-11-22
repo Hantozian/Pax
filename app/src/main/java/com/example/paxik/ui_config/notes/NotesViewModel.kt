@@ -6,7 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.paxik.data.AppDatabase
 import com.example.paxik.data.Folder
-import com.example.paxik.data.Link
+import com.example.paxik.data.NodeType
 import com.example.paxik.data.Note
 import com.example.paxik.data.Space
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,13 +45,8 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
             if (list.isEmpty() || list.any { it.id == saved }) saved else list.first().id
         }.stateIn(viewModelScope, started, savedSpaceId.value)
 
-    val activeSpaceName: StateFlow<String> =
-        combine(spaces, activeSpaceId) { list, id -> list.firstOrNull { it.id == id }?.name ?: "" }
-            .stateIn(viewModelScope, started, "")
-
     private val allNotes = noteDao.getAll().stateIn(viewModelScope, started, emptyList())
     private val allFolders = folderDao.getAll().stateIn(viewModelScope, started, emptyList())
-    private val allLinks = linkDao.getAll().stateIn(viewModelScope, started, emptyList())
 
     val notes: StateFlow<List<Note>> =
         combine(allNotes, activeSpaceId, _currentFolderId) { list, spaceId, folderId ->
@@ -61,16 +56,6 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
     val folders: StateFlow<List<Folder>> =
         combine(allFolders, activeSpaceId, _currentFolderId) { list, spaceId, folderId ->
             list.filter { it.spaceId == spaceId && it.parentId == folderId }
-        }.stateIn(viewModelScope, started, emptyList())
-
-    val spaceNotes: StateFlow<List<Note>> =
-        combine(allNotes, activeSpaceId) { list, spaceId -> list.filter { it.spaceId == spaceId } }
-            .stateIn(viewModelScope, started, emptyList())
-
-    val spaceLinks: StateFlow<List<Link>> =
-        combine(allLinks, spaceNotes) { links, notesInSpace ->
-            val ids = notesInSpace.map { it.id }.toSet()
-            links.filter { it.fromId in ids && it.toId in ids }
         }.stateIn(viewModelScope, started, emptyList())
 
     val path: StateFlow<List<Folder>> =
@@ -116,6 +101,18 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
         _currentFolderId.value = id
     }
 
+    fun reveal(ref: NodeRef) {
+        when (ref.type) {
+            NodeType.SPACE -> selectSpace(ref.id)
+            NodeType.FOLDER -> {
+                val folder = allFolders.value.firstOrNull { it.id == ref.id } ?: return
+                selectSpace(folder.spaceId)
+                _currentFolderId.value = folder.id
+            }
+            NodeType.NOTE -> Unit
+        }
+    }
+
     fun toggleNote(id: Long) {
         _selectedNotes.value = _selectedNotes.value.toggled(id)
     }
@@ -143,6 +140,7 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
             if (folderIds.isNotEmpty()) {
                 folderDao.deleteTree(collectTree(folderIds, allFolders.value))
             }
+            linkDao.deleteOrphans()
         }
     }
 
@@ -184,7 +182,10 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
         if (activeSpaceId.value == id) {
             selectSpace(list.first { it.id != id }.id)
         }
-        viewModelScope.launch { spaceDao.deleteWithContent(id) }
+        viewModelScope.launch {
+            spaceDao.deleteWithContent(id)
+            linkDao.deleteOrphans()
+        }
     }
 
     fun createNote(onCreated: (Long) -> Unit) {

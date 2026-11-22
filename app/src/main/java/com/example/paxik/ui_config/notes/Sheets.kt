@@ -76,7 +76,7 @@ fun AppBottomSheet(
 }
 
 @Composable
-private fun SheetTitle(text: String) {
+internal fun SheetTitle(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
@@ -88,7 +88,7 @@ private fun SheetTitle(text: String) {
 }
 
 @Composable
-private fun SheetAction(
+internal fun SheetAction(
     text: String,
     onClick: () -> Unit,
     color: Color = Color.Unspecified
@@ -104,12 +104,14 @@ private fun SheetAction(
 fun SpaceActionsSheet(
     space: Space,
     canDelete: Boolean,
+    onLinks: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AppBottomSheet(onDismiss) { close ->
         SheetTitle(space.name)
+        SheetAction(text = "Связи", onClick = { close { onLinks() } })
         SheetAction(text = "Переименовать", onClick = { close { onRename() } })
         if (canDelete) {
             SheetAction(

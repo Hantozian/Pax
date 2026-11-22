@@ -34,51 +34,74 @@ fun noteLabel(note: Note): String =
         note.text.trim().lineSequence().firstOrNull().orEmpty().ifBlank { "Без названия" }
     }
 
-@Composable
-fun NoteLinksButton(
-    onOpenNote: (Long) -> Unit,
-    viewModel: NoteLinksViewModel = viewModel()
-) {
-    val relations by viewModel.relations.collectAsState()
-    var showLinks by remember { mutableStateOf(false) }
-    var showPicker by remember { mutableStateOf(false) }
-    val count = relations.outgoing.size + relations.incoming.size
+private enum class LinksStage { LIST, PICK }
 
-    TextButton(onClick = { showLinks = true }) {
+@Composable
+fun NodeLinksButton(
+    node: NodeRef,
+    onOpenNode: (NodeRef) -> Unit,
+    viewModel: LinksViewModel = viewModel()
+) {
+    val graph by viewModel.graph.collectAsState()
+    var show by remember { mutableStateOf(false) }
+    val count = remember(graph, node) { graph.links.count { it.from == node || it.to == node } }
+
+    TextButton(onClick = { show = true }) {
         Text(if (count > 0) "Связи · $count" else "Связи")
     }
 
-    if (showLinks) {
-        NoteLinksSheet(
-            relations = relations,
-            onOpen = onOpenNote,
-            onRemoveOutgoing = viewModel::removeOutgoing,
-            onRemoveIncoming = viewModel::removeIncoming,
-            onAdd = { showPicker = true },
-            onDismiss = { showLinks = false }
-        )
-    }
-
-    if (showPicker) {
-        PickNoteSheet(
-            candidates = relations.candidates,
-            onPick = viewModel::addLink,
-            onDismiss = { showPicker = false }
+    if (show) {
+        NodeLinksSheets(
+            node = node,
+            onOpenNode = onOpenNode,
+            onDismiss = { show = false }
         )
     }
 }
 
 @Composable
-private fun NoteLinksSheet(
+fun NodeLinksSheets(
+    node: NodeRef,
+    onOpenNode: (NodeRef) -> Unit,
+    onDismiss: () -> Unit,
+    viewModel: LinksViewModel = viewModel()
+) {
+    val graph by viewModel.graph.collectAsState()
+    val relations = remember(graph, node) { graph.relationsOf(node) }
+    val title = graph.byRef[node]?.displayTitle.orEmpty()
+    var stage by remember { mutableStateOf(LinksStage.LIST) }
+
+    when (stage) {
+        LinksStage.LIST -> NodeLinksSheet(
+            title = title,
+            relations = relations,
+            onOpen = onOpenNode,
+            onRemoveOutgoing = { viewModel.removeLink(node, it) },
+            onRemoveIncoming = { viewModel.removeLink(it, node) },
+            onAdd = { stage = LinksStage.PICK },
+            onDismiss = onDismiss
+        )
+
+        LinksStage.PICK -> PickNodeSheet(
+            candidates = relations.candidates,
+            onPick = { viewModel.addLink(node, it) },
+            onDismiss = { stage = LinksStage.LIST }
+        )
+    }
+}
+
+@Composable
+private fun NodeLinksSheet(
+    title: String,
     relations: Relations,
-    onOpen: (Long) -> Unit,
-    onRemoveOutgoing: (Long) -> Unit,
-    onRemoveIncoming: (Long) -> Unit,
+    onOpen: (NodeRef) -> Unit,
+    onRemoveOutgoing: (NodeRef) -> Unit,
+    onRemoveIncoming: (NodeRef) -> Unit,
     onAdd: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AppBottomSheet(onDismiss) { close ->
-        SheetHeader("Связи")
+        SheetHeader(if (title.isBlank()) "Связи" else "Связи · $title")
         LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
             if (relations.outgoing.isEmpty() && relations.incoming.isEmpty()) {
                 item {
@@ -91,21 +114,21 @@ private fun NoteLinksSheet(
             }
             if (relations.outgoing.isNotEmpty()) {
                 item { SectionLabel("Ссылается на") }
-                items(relations.outgoing, key = { "out-${it.id}" }) { note ->
+                items(relations.outgoing, key = { "out-${it.ref.type}-${it.ref.id}" }) { node ->
                     LinkRow(
-                        note = note,
-                        onClick = { close { onOpen(note.id) } },
-                        onRemove = { onRemoveOutgoing(note.id) }
+                        node = node,
+                        onClick = { close { onOpen(node.ref) } },
+                        onRemove = { onRemoveOutgoing(node.ref) }
                     )
                 }
             }
             if (relations.incoming.isNotEmpty()) {
                 item { SectionLabel("Ссылаются сюда") }
-                items(relations.incoming, key = { "in-${it.id}" }) { note ->
+                items(relations.incoming, key = { "in-${it.ref.type}-${it.ref.id}" }) { node ->
                     LinkRow(
-                        note = note,
-                        onClick = { close { onOpen(note.id) } },
-                        onRemove = { onRemoveIncoming(note.id) }
+                        node = node,
+                        onClick = { close { onOpen(node.ref) } },
+                        onRemove = { onRemoveIncoming(node.ref) }
                     )
                 }
             }
@@ -115,22 +138,22 @@ private fun NoteLinksSheet(
                 Text("+  Добавить связь", color = MaterialTheme.colorScheme.primary)
             },
             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            modifier = Modifier.clickable { close { onAdd() } }
+            modifier = Modifier.clickable(onClick = onAdd)
         )
     }
 }
 
 @Composable
-private fun PickNoteSheet(
-    candidates: List<Note>,
-    onPick: (Long) -> Unit,
+private fun PickNodeSheet(
+    candidates: List<GraphNode>,
+    onPick: (NodeRef) -> Unit,
     onDismiss: () -> Unit
 ) {
     AppBottomSheet(onDismiss) { close ->
         var query by remember { mutableStateOf("") }
-        val filtered = candidates.filter { noteLabel(it).contains(query.trim(), ignoreCase = true) }
+        val filtered = candidates.filter { it.title.contains(query.trim(), ignoreCase = true) }
 
-        SheetHeader("Связать с заметкой")
+        SheetHeader("Связать с…")
         TextField(
             value = query,
             onValueChange = { query = it },
@@ -148,30 +171,22 @@ private fun PickNoteSheet(
         )
         if (filtered.isEmpty()) {
             Text(
-                text = "Нет подходящих заметок",
+                text = "Ничего не найдено",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
         }
         LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
-            items(filtered, key = { it.id }) { note ->
+            items(filtered, key = { "${it.ref.type}-${it.ref.id}" }) { node ->
                 ListItem(
                     headlineContent = {
-                        Text(noteLabel(note), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(node.displayTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     },
-                    supportingContent = if (note.text.isNotBlank() && note.title.isNotBlank()) {
-                        {
-                            Text(
-                                text = note.text.trim().lineSequence().first(),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    } else {
-                        null
+                    supportingContent = {
+                        Text(node.subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    modifier = Modifier.clickable { close { onPick(note.id) } }
+                    modifier = Modifier.clickable { close { onPick(node.ref) } }
                 )
             }
         }
@@ -179,10 +194,13 @@ private fun PickNoteSheet(
 }
 
 @Composable
-private fun LinkRow(note: Note, onClick: () -> Unit, onRemove: () -> Unit) {
+private fun LinkRow(node: GraphNode, onClick: () -> Unit, onRemove: () -> Unit) {
     ListItem(
         headlineContent = {
-            Text(noteLabel(note), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(node.displayTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        supportingContent = {
+            Text(node.subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         trailingContent = {
             IconButton(onClick = onRemove) {
@@ -200,6 +218,8 @@ private fun SheetHeader(text: String) {
         text = text,
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
     )
 }
